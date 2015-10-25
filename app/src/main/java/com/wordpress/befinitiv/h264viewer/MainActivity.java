@@ -8,6 +8,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.media.MediaCodec;
 import android.media.MediaCodec.BufferInfo;
 import android.media.MediaFormat;
@@ -17,38 +18,53 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.Window;
+import android.view.WindowManager;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private UdpReceiverDecoderThread mRec = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //window settings
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         SurfaceView sv = new SurfaceView(this);
         sv.getHolder().addCallback(this);
         setContentView(sv);
     }
 
+    protected void onPause() {
+        super.onPause();
+        Log.d("UDP", "onpause");
+    }
     protected void onDestroy() {
+        Log.d("UDP", "ondestroyed");
         super.onDestroy();
+
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Log.d("UDP", "created");
+        mRec = new UdpReceiverDecoderThread(holder.getSurface(), 5000);
+        mRec.start();
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        if(mRec == null) {
-            mRec = new UdpReceiverDecoderThread(holder.getSurface(), 5000);
-            mRec.start();
-        }
+        Log.d("UDP", "surface changed");
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if(mRec != null) {
-            mRec.interrupt();
-        }
+        Log.d("UDP", "surface destroyed");
+        mRec.interrupt();
+        mRec = null;
     }
 
 
@@ -77,6 +93,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             decoder.configure(format, surface, null, 0);
             decoder.setVideoScalingMode(MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING);
             decoder.start();
+
         }
 
         public void run() {
